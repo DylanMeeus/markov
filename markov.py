@@ -36,6 +36,11 @@ class trainer:
         f = open("state.json", "w+")
         f.write(json.dumps(self.tokens, ensure_ascii=False, indent=4))
 
+    def read_state(self):
+        f = open("state.json", "r")
+        self.tokens = json.load(f)
+        print(data)
+
 
 
 
