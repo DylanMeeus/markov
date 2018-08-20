@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import json
 
 
 class token:
@@ -29,6 +30,13 @@ class trainer:
                 self.tokens[parts[i]].append(next_token)
             else:
                 self.tokens[parts[i]] = [next_token]
+
+    def save_state(self):
+        # write the list of tokens to an easy to parse TSV
+        f = open("state.json", "w+")
+        f.write(json.dumps(self.tokens, ensure_ascii=False, indent=4))
+
+
 
 
 
@@ -65,3 +73,4 @@ if __name__ == '__main__':
     trainer = trainer()
     trainer.train("this is a test for parsing a sentence.")
     print(trainer.tokens)
+    trainer.save_state()
