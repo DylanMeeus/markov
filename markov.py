@@ -1,6 +1,8 @@
 import numpy as np
 import random
 import json
+from datetime import datetime
+from hnapi import HnApi 
 
 
 class token:
@@ -24,12 +26,35 @@ class trainer:
             self.tokens["START"].append(parts[0])
         else:
             self.tokens["START"] = [parts[0]]
+            self.tokens["EOL"] = []
         for i in range(len(parts)):
-            next_token = "EOL" if i + 1 == len(parts) else parts[i+1]
+            next_token = "EOL" if i + 1 >= len(parts) else parts[i+1]
             if parts[i] in self.tokens:
                 self.tokens[parts[i]].append(next_token)
             else:
                 self.tokens[parts[i]] = [next_token]
+
+    def sanitize(self):
+        # remove bad entries (like spaces)
+        for token in self.tokens:
+            no_space_tokens = list(filter(t: t != "", self.tokens[token]))
+            self.tokens[token] = no_space_tokens
+
+
+    def transform_matrix(self) -> '[float][float]':
+        self.sanitize()
+        # turn our tokens into a matrix for the markov chain
+        matrix = [[None for x in range(len(self.tokens))] for y in range(len(self.tokens))] 
+        for row, token in enumerate(self.tokens):
+            for column, other_token in enumerate(self.tokens):
+                # count the percentage of 'other_token' in token
+                successor_count = len(self.tokens[token])
+                matching_count = len(list(filter(lambda t: t == other_token, self.tokens[token])))
+                matrix[row][column] = matching_count / successor_count if successor_count != 0 else 0
+        return matrix
+        
+
+
 
     def save_state(self):
         # write the list of tokens to an easy to parse TSV
@@ -46,19 +71,20 @@ class trainer:
 
 
 class markov:
-    def __init__(self):
-        cols = 2
-        rows = 2
-        self.matrix = [[0 for x in range(cols)] for y in range(rows)] 
-        self.matrix[0][0] = 0.3
-        self.matrix[0][1] = 0.7
-        self.matrix[1][0] = 0.5 
-        self.matrix[1][1] = 0.5
+    def __init__(self, tokens, matrix):
+        self.tokens = tokens
+        self.matrix = matrix
+        # determine initial state
 
-    def run(self):
+
+    def run(self) -> 'String':
         state = 0
-        for i in range(100):
-            print(" S " if state == 0 else " R ")
+        sentence = ""
+        words = list(self.tokens.keys())
+        while words[state] != "EOL":
+            if words[state] != "START":
+                sentence += words[state] + " "
+            random.seed(datetime.now())
             r = random.random()
             sum_opt = 0
             for index, option in enumerate(self.matrix[state]):
@@ -68,14 +94,34 @@ class markov:
                     state = index
                     break
                     
+        return sentence
 
 
 
-    
+def get_hackernews_stories():
+    con = HnApi()
+    stories = []
+    limit = 1000
+    for i in range(1,limit):
+        print("parsing story: " + str(i) + " of " + str(limit))
+        try:
+            item = con.get_item(i)
+            title = item.get('title')
+            stories.append(title)
+        except:
+            pass
+    return stories
 
 
 if __name__ == '__main__':
+    input("generate?")
     trainer = trainer()
-    trainer.train("this is a test for parsing a sentence.")
-    print(trainer.tokens)
+    stories = get_hackernews_stories()
+    for story in stories:
+        trainer.train(story)
     trainer.save_state()
+    matrix = trainer.transform_matrix()
+    markov = markov(trainer.tokens, matrix)
+    while True:
+        print(markov.run())
+        input("next?")
