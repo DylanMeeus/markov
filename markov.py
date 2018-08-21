@@ -1,4 +1,3 @@
-import numpy as np
 import random
 import json
 from datetime import datetime
@@ -37,7 +36,7 @@ class trainer:
     def sanitize(self):
         # remove bad entries (like spaces)
         for token in self.tokens:
-            no_space_tokens = list(filter(t: t != "", self.tokens[token]))
+            no_space_tokens = list(filter(lambda t: t != "", self.tokens[token]))
             self.tokens[token] = no_space_tokens
 
 
@@ -64,8 +63,7 @@ class trainer:
     def read_state(self):
         f = open("state.json", "r")
         self.tokens = json.load(f)
-        print(data)
-
+        
 
 
 
@@ -101,7 +99,7 @@ class markov:
 def get_hackernews_stories():
     con = HnApi()
     stories = []
-    limit = 1000
+    limit = 10000
     for i in range(1,limit):
         print("parsing story: " + str(i) + " of " + str(limit))
         try:
@@ -116,12 +114,14 @@ def get_hackernews_stories():
 if __name__ == '__main__':
     input("generate?")
     trainer = trainer()
-    stories = get_hackernews_stories()
-    for story in stories:
-        trainer.train(story)
-    trainer.save_state()
+    #stories = get_hackernews_stories()
+    #for story in stories:
+    #    trainer.train(story)
+    #trainer.save_state()
+    trainer.read_state()
     matrix = trainer.transform_matrix()
     markov = markov(trainer.tokens, matrix)
     while True:
-        print(markov.run())
-        input("next?")
+        for i in range(5):
+            print(markov.run())
+        input("")
